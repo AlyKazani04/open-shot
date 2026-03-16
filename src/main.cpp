@@ -2,6 +2,8 @@
 #include <opencv4/opencv2/opencv.hpp>
 #include "Game/GameState.hpp"
 
+const int SCREEN_WIDTH = 640;
+const int SCREEN_HEIGHT = 480;
 // Forward declarations of state handling
 void handleNameEntry(sf::RenderWindow& window, GameState& state, std::string& playerName);
 void handleWebcamCapture(sf::RenderWindow& window, GameState& state, cv::Mat& playerImage);
@@ -9,7 +11,7 @@ void handlePlaying(sf::RenderWindow& window, GameState& state, const std::string
 void handleLeaderboard(sf::RenderWindow& window, GameState& state);
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode({640, 480}), "OpenShot");
+    sf::RenderWindow window(sf::VideoMode({SCREEN_WIDTH, SCREEN_HEIGHT}), "OpenShot");
     GameState state = GameState::NameEntry;
 
     std::string playerName;
@@ -92,19 +94,20 @@ void handleNameEntry(sf::RenderWindow& window, GameState& state, std::string& pl
                 return;
             }
             if (eventOpt->is<sf::Event::KeyPressed>()) {
-                if (eventOpt->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::Escape) {
+                auto key = eventOpt->getIf<sf::Event::KeyPressed>()->code;
+                if (key == sf::Keyboard::Key::Escape) {
                     state = GameState::Exiting;
                     return;
-                } else if (eventOpt->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::Escape) {
+                } else if (key == sf::Keyboard::Key::Enter) {
                     if (!playerName.empty()) {
                         done = true;
                     }
-                } else if (eventOpt->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::Backspace) {
+                } else if (key == sf::Keyboard::Key::Backspace) {
                     if (!playerName.empty()) playerName.pop_back();
                 }
-            } else if (eventOpt->is<sf::Event::TextEntered>()) {
+            }
+            else if (eventOpt->is<sf::Event::TextEntered>()) {
                 char c = static_cast<char>(eventOpt->getIf<sf::Event::TextEntered>()->unicode);
-                // Accept only printable ascii, ignore control chars
                 if (c >= 32 && c < 127 && (int)playerName.size() < MAX_NAME_LENGTH) {
                     playerName += c;
                 }
@@ -129,10 +132,117 @@ void handleNameEntry(sf::RenderWindow& window, GameState& state, std::string& pl
     }
     state = GameState::WebcamCapture;
 }
+
 void handleWebcamCapture(sf::RenderWindow& window, GameState& state, cv::Mat& capturedImage) {
-    // TODO: implement webcam image capture with round overlay
-    state = GameState::Playing; // advance for initial scaffolding
+    sf::Font font;
+    if (!font.openFromFile(FONT_PATH)) {
+        // Fatal error: Font not found close window and log to console
+        while (window.isOpen()) {
+            while (auto event = window.pollEvent()) {
+                if (event->is<sf::Event::Closed>() || (event->is<sf::Event::KeyPressed>() && event->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::Escape))
+                    std::cerr << "[Error] Font not Found! " << FONT_PATH << std::endl;
+                    window.close();
+            }
+        }
+        state = GameState::Exiting;
+        return;
+    }
+
+    cv::VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        // Camera error: Display overlay error window
+        bool quit = false;
+        while (window.isOpen() && !quit) {
+            while (auto event = window.pollEvent()) {
+                if (event->is<sf::Event::Closed>() || (event->is<sf::Event::KeyPressed>() && event->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::Escape)) {
+                    window.close(); quit = true; break;
+                }
+            }
+            window.clear(sf::Color(30,30,50));
+            sf::Text errorMsg(font, "Error: No webcam detected! Press Escape to exit.", 22);
+            errorMsg.setPosition({24, window.getSize().y/2 - 24});
+            errorMsg.setFillColor(sf::Color::Red);
+            window.draw(errorMsg);
+            window.display();
+        }
+        state = GameState::Exiting;
+        return;
+    }
+
+    // Webcam streaming loop
+    sf::Texture camTexture;
+    sf::Sprite camSprite(camTexture);
+    bool captured = false;
+    std::string instructions = "Center your face and press Enter to capture. Esc: Quit";
+    
+    while (window.isOpen() && !captured) {
+        // Poll events
+        while (auto eventOpt = window.pollEvent()) {
+            if (!eventOpt) continue;
+            if (eventOpt->is<sf::Event::Closed>()) { window.close(); return; }
+            if (eventOpt->is<sf::Event::KeyPressed>()) {
+                auto key = eventOpt->getIf<sf::Event::KeyPressed>()->code;
+                if (key == sf::Keyboard::Key::Escape) {
+                    state = GameState::Exiting; return;
+                }
+                if (key == sf::Keyboard::Key::Enter) {
+                    // Confirm capture
+                    captured = true;
+                }
+            }
+        }
+        
+        // Read webcam frame
+        cv::Mat frame;
+        if (!cap.read(frame)) {
+            // Camera died mid-way
+            sf::Text err(font, "Camera error! Press Escape to exit.", 20);
+            err.setFillColor(sf::Color::Red);
+            err.setPosition({30, window.getSize().y/2});
+            window.clear(sf::Color(30,20,20));
+            window.draw(err);
+            window.display();
+            sf::sleep(sf::milliseconds(800));
+            continue;
+        }
+
+        // Convert BGR OpenCV -> RGBA SFML
+        cv::Mat rgba;
+        cv::cvtColor(frame, rgba, cv::COLOR_BGR2RGBA);
+        // Flip row order (OpenCV has 0,0 at top-left, matches SFML)
+        // Resize to fit view if needed
+        int targetW = window.getSize().x; int targetH = window.getSize().y - 80;
+        cv::resize(rgba, rgba, cv::Size(targetW, targetH));
+        camTexture.resize({rgba.cols, rgba.rows});
+        camTexture.update(rgba.data);
+        camSprite.setTexture(camTexture, true);
+        camSprite.setPosition({0, 40}); // Leave space for UI
+
+        // Begin drawing
+        window.clear(sf::Color(20,40,70));
+        window.draw(camSprite);
+        // Draw overlay circle
+        float radius = std::min(targetW, targetH) * 0.33f;
+        sf::CircleShape overlay(radius);
+        overlay.setFillColor(sf::Color(0,0,0,0));
+        overlay.setOutlineThickness(6);
+        overlay.setOutlineColor(sf::Color(224,240,255,130));
+        overlay.setPosition({targetW/2-radius, 40+targetH/2-radius});
+        window.draw(overlay);
+        // Draw instructions
+        sf::Text info(font, instructions, 22);
+        info.setPosition({32, 2});
+        info.setFillColor(sf::Color(245,245,240));
+        window.draw(info);
+        window.display();
+    }
+
+    // After capture, store image for later avatar use
+    cap.release(); // stop camera
+    // Crop/mask in next step
+    state = GameState::Playing; // for now continue as stub
 }
+
 
 void handlePlaying(sf::RenderWindow& window, GameState& state, const std::string& playerName, const cv::Mat& playerImage, int& score) {
     // TODO: implement main game UI, throwing and obstacles

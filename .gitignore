@@ -8,6 +8,7 @@
 
 # build files
 build/
+out/
 
 # Aly's lazygit file
 lazygit

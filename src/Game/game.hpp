@@ -8,7 +8,7 @@ class Game {
     private:
 
     public:
-        Game() =delete;
+        Game();
         Game(const Register& r);
 
         void run();

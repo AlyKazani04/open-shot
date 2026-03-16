@@ -7,6 +7,6 @@ class Register {
     private:
         cv::Mat m_image;
     public:
-        Register(); // dont know what to put in yet
+        Register();
 
 };
