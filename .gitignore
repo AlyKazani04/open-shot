@@ -1,9 +1,10 @@
 # exclude all files
 *
 
-# except files with extensions.
+# except files with extensions and folders.
 # (Since, we are working on linux, executables have no extensions, this is the way to exclude them)
 !*.*
+!*/
 
 # build files
 build/
