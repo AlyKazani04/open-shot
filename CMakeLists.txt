@@ -12,7 +12,7 @@ find_package(SFML 3 COMPONENTS Graphics Window System REQUIRED)
 
 
 set(SRC_ROOT "src")
-file(GLOB_RECURSE SOURCES "${SRC_ROOT}/*.cpp")
+file(GLOB_RECURSE SOURCES "${SRC_ROOT}/**.cpp")
 add_executable(open-shot ${SOURCES})
 
 
