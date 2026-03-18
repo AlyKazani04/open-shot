@@ -164,7 +164,7 @@ namespace
     {
         for(const auto& o : obstacles)
         {
-            if(o.alive)
+            if(o.alive && o.destructible)
             {
                 return false;
             }
