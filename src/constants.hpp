@@ -6,6 +6,9 @@ constexpr int SCREEN_HEIGHT = 480;
 constexpr int MAX_NAME_LENGTH = 40;
 constexpr char FONT_PATH[] = "fonts/RobotoSlab-Medium.ttf";
 
+constexpr char SLIPPER_TEXTURE_PATH[] = "assets/slipper.png";
+constexpr char ANT_TEXTURE_PATH[] = "assets/ant.png";
+
 constexpr int LEVEL_COUNT = 3;
 
 constexpr float GRAVITY = 800.0f;

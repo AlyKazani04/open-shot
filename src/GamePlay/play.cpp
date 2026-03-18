@@ -1,9 +1,7 @@
 #include "play.hpp"
 
-#include <chrono>
-#include <cmath>
-#include <iostream>
-#include <vector>
+#include <SFML/Graphics/Color.hpp>
+#include <optional>
 
 namespace
 {
@@ -31,6 +29,7 @@ namespace
     struct Obstacle
     {
         sf::RectangleShape shape{sf::Vector2f{}};
+        std::optional<sf::Sprite> sprite;
         bool alive{};
         bool destructible{};
         int scoreOnHit{};
@@ -38,9 +37,13 @@ namespace
 
     struct Projectile
     {
-        sf::CircleShape shape;
-        sf::Vector2f velocity;
-        bool inFlight;
+        Projectile() = delete;
+        explicit Projectile(const sf::Texture& texture) : sprite(texture) {}
+
+        sf::Sprite sprite;
+        sf::Vector2f velocity{};
+        bool inFlight{false};
+        float rotationSpeed{0.0f};
     };
 
     LevelConfig getLevelConfig(int levelNumber)
@@ -62,7 +65,7 @@ namespace
                 cfg.hills.push_back({{hillX, hillY}, {hillWidth, hillHeight}});
 
                 // Targets resting on top of the hill
-                float blockW = 30.0f;
+                float blockW = 36.0f;
                 float blockH = 60.0f;
                 float hillTopY = hillY;
                 float baseY = hillTopY - blockH / 2.0f;
@@ -150,7 +153,7 @@ namespace
 
                     // targets on hill B, slightly higher and further
                     {{hillBX + 20.0f, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillBX + 60.0f, baseBY - 20.0f}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillBX + 60.0f, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
                     {{hillBX + 100.0f, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
                 };
                 break;
@@ -198,8 +201,24 @@ void play(sf::RenderWindow& window,
 
     sf::RectangleShape sky(
         sf::Vector2f(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT)));
-    sky.setFillColor(sf::Color(20, 26, 46));
+    sky.setFillColor(sf::Color(255, 222, 179));
     sky.setPosition(sf::Vector2f(0.0f, 0.0f));
+
+    sf::Texture slipperTexture;
+    if(!slipperTexture.loadFromFile(SLIPPER_TEXTURE_PATH))
+    {
+        std::cerr << "[ERROR] Missing texture: " << SLIPPER_TEXTURE_PATH << std::endl;
+        state = GameState::Exiting;
+        return;
+    }
+
+    sf::Texture antTexture;
+    if(!antTexture.loadFromFile(ANT_TEXTURE_PATH))
+    {
+        std::cerr << "[ERROR] Missing texture: " << ANT_TEXTURE_PATH << std::endl;
+        state = GameState::Exiting;
+        return;
+    }
 
     // Launcher base and ball placement
     const sf::Vector2f launcherBaseSize(40.0f, 60.0f);
@@ -210,16 +229,22 @@ void play(sf::RenderWindow& window,
         launcherBasePos.y + launcherBaseSize.y / 2.0f);
 
     sf::Vector2f ballStart(
-        launcherCenter.x + launcherBaseSize.x / 2.0f + PROJECTILE_RADIUS,
-        launcherCenter.y - launcherBaseSize.y / 4.0f);
+        launcherCenter.x - launcherBaseSize.x / 2.0f + PROJECTILE_RADIUS,
+        launcherCenter.y - launcherBaseSize.y / 2.0f);
 
-    Projectile projectile;
-    projectile.shape.setRadius(PROJECTILE_RADIUS);
-    projectile.shape.setOrigin(sf::Vector2f(PROJECTILE_RADIUS, PROJECTILE_RADIUS));
-    projectile.shape.setFillColor(sf::Color(220, 80, 80));
-    projectile.shape.setPosition(ballStart);
+    Projectile projectile(slipperTexture);
+    auto slipperSize = slipperTexture.getSize();
+    float targetHeight = PROJECTILE_RADIUS * 2.0f;
+    float slipperScale = slipperSize.y > 0
+                              ? targetHeight / static_cast<float>(slipperSize.y)
+                              : 1.0f;
+    projectile.sprite.setScale(sf::Vector2f(slipperScale, slipperScale));
+    projectile.sprite.setOrigin(sf::Vector2f(static_cast<float>(slipperSize.x) / 2.0f,
+                                             static_cast<float>(slipperSize.y) / 2.0f));
+    projectile.sprite.setPosition(ballStart);
     projectile.velocity = {0.0f, 0.0f};
     projectile.inFlight = false;
+    projectile.rotationSpeed = 180.0f;
 
     sf::RectangleShape launcherBase(launcherBaseSize);
     launcherBase.setFillColor(sf::Color(120, 80, 40));
@@ -250,6 +275,16 @@ void play(sf::RenderWindow& window,
         if(cfg.destructible)
         {
             o.shape.setFillColor(sf::Color(120, 170, 210));
+            o.sprite.emplace(antTexture);
+            auto antSize = antTexture.getSize();
+            float targetWidth = cfg.size.x;
+            float antScale = antSize.x > 0
+                                 ? targetWidth / static_cast<float>(antSize.x)
+                                 : 1.0f;
+            o.sprite->setScale(sf::Vector2f(antScale, antScale));
+            o.sprite->setOrigin(sf::Vector2f(static_cast<float>(antSize.x) / 2.0f,
+                                             static_cast<float>(antSize.y) / 2.0f));
+            o.sprite->setPosition(cfg.position);
         }
         else
         {
@@ -262,21 +297,21 @@ void play(sf::RenderWindow& window,
     }
 
     sf::Text hudName(font, "Player: " + playerName, 18);
-    hudName.setFillColor(sf::Color::White);
+    hudName.setFillColor(sf::Color::Black);
     hudName.setPosition(sf::Vector2f(10.0f, 10.0f));
 
     sf::Text hudScore(font, "Score: " + std::to_string(score), 18);
-    hudScore.setFillColor(sf::Color::White);
+    hudScore.setFillColor(sf::Color::Black);
     hudScore.setPosition(sf::Vector2f(10.0f, 34.0f));
 
     sf::Text hudShots(font, "Shots: " + std::to_string(remainingShots), 18);
-    hudShots.setFillColor(sf::Color::White);
+    hudShots.setFillColor(sf::Color::Black);
     hudShots.setPosition(sf::Vector2f(10.0f, 58.0f));
 
     sf::Text hudLevel(font,
                       "Level: " + std::to_string(levelNumber) + "/" + std::to_string(maxLevels),
                       18);
-    hudLevel.setFillColor(sf::Color(200, 220, 255));
+    hudLevel.setFillColor(sf::Color::Black);
     hudLevel.setPosition(sf::Vector2f(static_cast<float>(SCREEN_WIDTH) -
                                           hudLevel.getLocalBounds().size.x - 10.0f,
                                       10.0f));
@@ -299,7 +334,6 @@ void play(sf::RenderWindow& window,
         {
             if(eventOpt->is<sf::Event::Closed>())
             {
-                window.close();
                 state = GameState::Exiting;
                 return;
             }
@@ -321,10 +355,10 @@ void play(sf::RenderWindow& window,
                 {
                     sf::Vector2i mp = sf::Mouse::getPosition(window);
                     sf::Vector2f mousePos(static_cast<float>(mp.x), static_cast<float>(mp.y));
-                    if(projectile.shape.getGlobalBounds().contains(mousePos))
+                    if(projectile.sprite.getGlobalBounds().contains(mousePos))
                     {
                         dragging = true;
-                        dragStart = projectile.shape.getPosition();
+                        dragStart = projectile.sprite.getPosition();
                         dragCurrent = mousePos;
                     }
                 }
@@ -367,7 +401,7 @@ void play(sf::RenderWindow& window,
         {
             projectile.velocity.y += GRAVITY * dt;
 
-            sf::Vector2f pos = projectile.shape.getPosition();
+            sf::Vector2f pos = projectile.sprite.getPosition();
             pos += projectile.velocity * dt;
 
             if(pos.y + PROJECTILE_RADIUS >= groundY)
@@ -375,24 +409,27 @@ void play(sf::RenderWindow& window,
                 pos.y = groundY - PROJECTILE_RADIUS;
                 projectile.inFlight = false;
                 projectile.velocity = {0.0f, 0.0f};
-                projectile.shape.setPosition(ballStart);
+                projectile.sprite.setPosition(ballStart);
+                projectile.sprite.setRotation(sf::degrees(0.0f));
             }
             else if(pos.x < -50.0f || pos.x > static_cast<float>(SCREEN_WIDTH) + 50.0f ||
                     pos.y < -50.0f)
             {
                 projectile.inFlight = false;
                 projectile.velocity = {0.0f, 0.0f};
-                projectile.shape.setPosition(ballStart);
+                projectile.sprite.setPosition(ballStart);
+                projectile.sprite.setRotation(sf::degrees(0.0f));
             }
             else
             {
-                projectile.shape.setPosition(pos);
+                projectile.sprite.setPosition(pos);
+                projectile.sprite.rotate(sf::degrees(projectile.rotationSpeed * dt));
             }
         }
 
         if(projectile.inFlight)
         {
-            sf::FloatRect projBounds = projectile.shape.getGlobalBounds();
+            sf::FloatRect projBounds = projectile.sprite.getGlobalBounds();
 
             // Collide with hills (treat like extra ground)
             for(const auto& hill : hills)
@@ -401,7 +438,8 @@ void play(sf::RenderWindow& window,
                 {
                     projectile.inFlight = false;
                     projectile.velocity = {0.0f, 0.0f};
-                    projectile.shape.setPosition(ballStart);
+                    projectile.sprite.setPosition(ballStart);
+                    projectile.sprite.setRotation(sf::degrees(0.0f));
                     break;
                 }
             }
@@ -427,7 +465,8 @@ void play(sf::RenderWindow& window,
                             // Blocking column: stop and reset ball
                             projectile.inFlight = false;
                             projectile.velocity = {0.0f, 0.0f};
-                            projectile.shape.setPosition(ballStart);
+                            projectile.sprite.setPosition(ballStart);
+                            projectile.sprite.setRotation(sf::degrees(0.0f));
                         }
                     }
                 }
@@ -454,12 +493,19 @@ void play(sf::RenderWindow& window,
         {
             if(o.alive)
             {
-                window.draw(o.shape);
+                if(o.sprite)
+                {
+                    window.draw(*o.sprite);
+                }
+                else
+                {
+                    window.draw(o.shape);
+                }
             }
         }
 
         window.draw(launcherBase);
-        window.draw(projectile.shape);
+        window.draw(projectile.sprite);
 
         if(dragging)
         {
@@ -494,7 +540,7 @@ void play(sf::RenderWindow& window,
 
             sf::CircleShape dragCircle(pull);
             dragCircle.setOrigin(sf::Vector2f(pull, pull));
-            dragCircle.setPosition(projectile.shape.getPosition());
+            dragCircle.setPosition(projectile.sprite.getPosition());
             dragCircle.setFillColor(dragColor);
             dragCircle.setOutlineThickness(0.0f);
 
