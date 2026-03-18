@@ -1,15 +1,18 @@
 #pragma once
 
+#include "GamePlay/play.hpp"
+#include "Register/register.hpp"
 #include <SFML/Graphics.hpp>
-#include <opencv4/opencv2/opencv.hpp>
-#include "Registration/register.hpp"
 
-class Game {
+class Game
+{
     private:
-
+        sf::RenderWindow m_window;
+        GameState m_state;
+        int m_score;
+        std::string m_playerName;
     public:
         Game();
-        Game(const Register& r);
 
         void run();
         

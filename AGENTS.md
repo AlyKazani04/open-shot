@@ -153,7 +153,6 @@ This file provides essential build, run, style, and workflow guidelines for agen
 
 - **CMake:** https://cmake.org/documentation/
 - **SFML Docs:** https://www.sfml-dev.org/documentation/3.0.0/
-- **OpenCV Docs:** https://docs.opencv.org/
 - **Catch2:** https://github.com/catchorg/Catch2
 - **GoogleTest:** https://github.com/google/googletest
 
