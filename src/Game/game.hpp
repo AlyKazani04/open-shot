@@ -11,6 +11,8 @@ class Game
         GameState m_state;
         int m_score;
         std::string m_playerName;
+        int m_currentLevel;
+        int m_maxLevels;
     public:
         Game();
 

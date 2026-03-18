@@ -10,5 +10,11 @@
 build/
 out/
 
+# ignore cache files
+.cache/
+
+# ignore leaderboard
+data/
+
 # Aly's lazygit file
 lazygit

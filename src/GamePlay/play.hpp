@@ -4,4 +4,9 @@
 #include "Game/gamestate.hpp"
 #include <SFML/Graphics.hpp>
 
-void play(sf::RenderWindow& window, GameState& state, const std::string& playerName, int& score);
+void play(sf::RenderWindow& window,
+          GameState& state,
+          const std::string& playerName,
+          int& score,
+          int levelNumber,
+          int maxLevels);

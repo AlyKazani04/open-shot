@@ -4,7 +4,9 @@
 
 enum class GameState {
     NameEntry,
+    LevelIntro,
     Playing,
+    LevelComplete,
     Leaderboard,
     Exiting
 };
