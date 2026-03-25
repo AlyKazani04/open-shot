@@ -50,6 +50,12 @@ namespace
     {
         LevelConfig cfg{};
 
+        const float sx = scaleX();
+        const float sy = scaleY();
+        const float su = scaleUniform();
+
+        const float groundY = static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT * sy;
+
         switch(levelNumber)
         {
             case 1:
@@ -57,24 +63,28 @@ namespace
             {
                 cfg.shots = BASE_SHOTS_LEVEL1;
 
-                // Simple hill on the right side to support the targets
-                float hillWidth = 160.0f;
-                float hillHeight = 80.0f;
-                float hillX = 440.0f;
-                float hillY = static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - hillHeight;
+                // Simple hill on the right side to support the targets (design units)
+                float hillWidthDesign = 200.0f;
+                float hillHeightDesign = 90.0f;
+                float hillXDesign = 520.0f;
+
+                float hillWidth = hillWidthDesign * sx;
+                float hillHeight = hillHeightDesign * sy;
+                float hillX = hillXDesign * sx;
+                float hillY = groundY - hillHeight;
                 cfg.hills.push_back({{hillX, hillY}, {hillWidth, hillHeight}});
 
                 // Targets resting on top of the hill
-                float blockW = 36.0f;
-                float blockH = 60.0f;
+                float blockW = 36.0f * su;
+                float blockH = 60.0f * su;
                 float hillTopY = hillY;
-                float baseY = hillTopY - blockH / 2.0f;
+                float baseY = hillTopY - blockH / 2.0f + 10.f;
 
                 cfg.obstacles = {
-                    {{hillX + 20.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillX + 60.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillX + 100.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillX + 140.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 30.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 80.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 130.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 180.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
                 };
                 break;
             }
@@ -82,29 +92,35 @@ namespace
             {
                 cfg.shots = 5;
 
-                // Same hill as level 1 for targets
-                float hillWidth = 160.0f;
-                float hillHeight = 80.0f;
-                float hillX = 440.0f;
-                float hillY = static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - hillHeight;
+                // Similar hill as level 1 for targets
+                float hillWidthDesign = 200.0f;
+                float hillHeightDesign = 90.0f;
+                float hillXDesign = 520.0f;
+
+                float hillWidth = hillWidthDesign * sx;
+                float hillHeight = hillHeightDesign * sy;
+                float hillX = hillXDesign * sx;
+                float hillY = groundY - hillHeight;
                 cfg.hills.push_back({{hillX, hillY}, {hillWidth, hillHeight}});
 
-                float blockW = 30.0f;
-                float blockH = 60.0f;
+                float blockW = 36.0f * su;
+                float blockH = 60.0f * su;
                 float hillTopY = hillY;
-                float baseY = hillTopY - blockH / 2.0f;
+                float baseY = hillTopY - blockH / 2.0f + 10.f;
 
                 // Destructible targets behind a blocking column
                 cfg.obstacles = {
-                    // blocking column (non-destructible)
-                    {{260.0f, static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - 50.0f},
-                     {40.0f, 100.0f},
-                     false,
-                     0},
+                    // blocking column (non-destructible), resting on ground
+                    [&]() {
+                        float colHeight = 100.0f * su;
+                        float colWidth = 40.0f * su;
+                        float centerY = groundY - colHeight / 2.0f;
+                        return ObstacleConfig{{260.0f * sx, centerY}, {colWidth, colHeight}, false, 0};
+                    }(),
                     // targets on hill behind column
-                    {{hillX + 40.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillX + 80.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillX + 120.0f, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 50.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 100.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillX + 150.0f * sx, baseY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
                 };
                 break;
             }
@@ -113,48 +129,60 @@ namespace
                 cfg.shots = 4;
 
                 // Two hills at different distances and heights
-                float hillAWidth = 120.0f;
-                float hillAHeight = 70.0f;
-                float hillAX = 380.0f;
-                float hillAY = static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - hillAHeight;
+                float hillAWidthDesign = 140.0f;
+                float hillAHeightDesign = 80.0f;
+                float hillAXDesign = 420.0f;
+
+                float hillAWidth = hillAWidthDesign * sx;
+                float hillAHeight = hillAHeightDesign * sy;
+                float hillAX = hillAXDesign * sx;
+                float hillAY = groundY - hillAHeight;
                 cfg.hills.push_back({{hillAX, hillAY}, {hillAWidth, hillAHeight}});
 
-                float hillBWidth = 140.0f;
-                float hillBHeight = 110.0f;
-                float hillBX = 500.0f;
-                float hillBY = static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - hillBHeight;
+                float hillBWidthDesign = 170.0f;
+                float hillBHeightDesign = 120.0f;
+                float hillBXDesign = 580.0f;
+
+                float hillBWidth = hillBWidthDesign * sx;
+                float hillBHeight = hillBHeightDesign * sy;
+                float hillBX = hillBXDesign * sx;
+                float hillBY = groundY - hillBHeight;
                 cfg.hills.push_back({{hillBX, hillBY}, {hillBWidth, hillBHeight}});
 
-                float blockW = 26.0f;
-                float blockH = 50.0f;
+                float blockW = 36.0f * su;
+                float blockH = 60.0f * su;
 
                 float hillATopY = hillAY;
                 float hillBTopY = hillBY;
 
-                float baseAY = hillATopY - blockH / 2.0f;
-                float baseBY = hillBTopY - blockH / 2.0f;
+                float baseAY = hillATopY - blockH / 2.0f + 10.f;
+                float baseBY = hillBTopY - blockH / 2.0f + 10.f;
 
                 // Two blocking columns creating a narrow window
                 cfg.obstacles = {
-                    // front shorter column
-                    {{220.0f, static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - 40.0f},
-                     {30.0f, 80.0f},
-                     false,
-                     0},
-                    // second taller column closer to hills
-                    {{320.0f, static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT - 70.0f},
-                     {30.0f, 140.0f},
-                     false,
-                     0},
+                    // front shorter column, resting on ground
+                    [&]() {
+                        float colHeight = 80.0f * su;
+                        float colWidth = 30.0f * su;
+                        float centerY = groundY - colHeight / 2.0f;
+                        return ObstacleConfig{{220.0f * sx, centerY}, {colWidth, colHeight}, false, 0};
+                    }(),
+                    // second taller column closer to hills, also resting on ground
+                    [&]() {
+                        float colHeight = 140.0f * su;
+                        float colWidth = 30.0f * su;
+                        float centerY = groundY - colHeight / 2.0f;
+                        return ObstacleConfig{{340.0f * sx, centerY}, {colWidth, colHeight}, false, 0};
+                    }(),
 
                     // targets on hill A
-                    {{hillAX + 30.0f, baseAY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillAX + 70.0f, baseAY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillAX + 40.0f * sx, baseAY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillAX + 90.0f * sx, baseAY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
 
                     // targets on hill B, slightly higher and further
-                    {{hillBX + 20.0f, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillBX + 60.0f, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
-                    {{hillBX + 100.0f, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillBX + 30.0f * sx, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillBX + 80.0f * sx, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
+                    {{hillBX + 130.0f * sx, baseBY}, {blockW, blockH}, true, SCORE_PER_OBSTACLE},
                 };
                 break;
             }
@@ -185,6 +213,10 @@ void play(sf::RenderWindow& window,
 {
     (void)maxLevels;
 
+    const float sx = scaleX();
+    const float sy = scaleY();
+    const float su = scaleUniform();
+
     sf::Font font;
     if(!font.openFromFile(FONT_PATH))
     {
@@ -192,10 +224,12 @@ void play(sf::RenderWindow& window,
         state = GameState::Exiting;
         return;
     }
+    font.setSmooth(false);
 
-    const float groundY = static_cast<float>(SCREEN_HEIGHT) - GROUND_HEIGHT;
+    const float groundHeight = GROUND_HEIGHT * sy;
+    const float groundY = static_cast<float>(SCREEN_HEIGHT) - groundHeight;
 
-    sf::RectangleShape ground(sf::Vector2f(static_cast<float>(SCREEN_WIDTH), GROUND_HEIGHT));
+    sf::RectangleShape ground(sf::Vector2f(static_cast<float>(SCREEN_WIDTH), groundHeight));
     ground.setFillColor(sf::Color(50, 50, 50));
     ground.setPosition(sf::Vector2f(0.0f, groundY));
 
@@ -211,6 +245,7 @@ void play(sf::RenderWindow& window,
         state = GameState::Exiting;
         return;
     }
+    slipperTexture.setSmooth(false);
 
     sf::Texture antTexture;
     if(!antTexture.loadFromFile(ANT_TEXTURE_PATH))
@@ -219,22 +254,25 @@ void play(sf::RenderWindow& window,
         state = GameState::Exiting;
         return;
     }
+    antTexture.setSmooth(false);
 
     // Launcher base and ball placement
-    const sf::Vector2f launcherBaseSize(40.0f, 60.0f);
-    const sf::Vector2f launcherBasePos(60.0f,
+    const sf::Vector2f launcherBaseSize(40.0f * su, 60.0f * su);
+    const sf::Vector2f launcherBasePos(60.0f * sx,
                                        groundY - launcherBaseSize.y);
     sf::Vector2f launcherCenter(
         launcherBasePos.x + launcherBaseSize.x / 2.0f,
         launcherBasePos.y + launcherBaseSize.y / 2.0f);
 
+    const float projectileRadius = PROJECTILE_RADIUS * su;
+
     sf::Vector2f ballStart(
-        launcherCenter.x - launcherBaseSize.x / 2.0f + PROJECTILE_RADIUS,
+        launcherCenter.x - launcherBaseSize.x / 2.0f + projectileRadius,
         launcherCenter.y - launcherBaseSize.y / 2.0f);
 
     Projectile projectile(slipperTexture);
     auto slipperSize = slipperTexture.getSize();
-    float targetHeight = PROJECTILE_RADIUS * 2.0f;
+    float targetHeight = projectileRadius * 2.0f;
     float slipperScale = slipperSize.y > 0
                               ? targetHeight / static_cast<float>(slipperSize.y)
                               : 1.0f;
@@ -277,7 +315,8 @@ void play(sf::RenderWindow& window,
             o.shape.setFillColor(sf::Color(120, 170, 210));
             o.sprite.emplace(antTexture);
             auto antSize = antTexture.getSize();
-            float targetWidth = cfg.size.x;
+            // Make ants slightly larger than their block width for clarity
+            float targetWidth = cfg.size.x * 1.2f;
             float antScale = antSize.x > 0
                                  ? targetWidth / static_cast<float>(antSize.x)
                                  : 1.0f;
@@ -296,27 +335,39 @@ void play(sf::RenderWindow& window,
         obstacles.push_back(o);
     }
 
-    sf::Text hudName(font, "Player: " + playerName, 18);
+    unsigned int hudFontSize = static_cast<unsigned int>(18.0f * su);
+    if(hudFontSize < 14u)
+    {
+        hudFontSize = 14u;
+    }
+
+    sf::Text hudName(font, "Player: " + playerName, hudFontSize);
     hudName.setFillColor(sf::Color::Black);
     hudName.setPosition(sf::Vector2f(10.0f, 10.0f));
 
-    sf::Text hudScore(font, "Score: " + std::to_string(score), 18);
+    sf::Text hudScore(font, "Score: " + std::to_string(score), hudFontSize);
     hudScore.setFillColor(sf::Color::Black);
     hudScore.setPosition(sf::Vector2f(10.0f, 34.0f));
 
-    sf::Text hudShots(font, "Shots: " + std::to_string(remainingShots), 18);
+    sf::Text hudShots(font, "Shots: " + std::to_string(remainingShots), hudFontSize);
     hudShots.setFillColor(sf::Color::Black);
     hudShots.setPosition(sf::Vector2f(10.0f, 58.0f));
 
     sf::Text hudLevel(font,
                       "Level: " + std::to_string(levelNumber) + "/" + std::to_string(maxLevels),
-                      18);
+                      hudFontSize);
     hudLevel.setFillColor(sf::Color::Black);
     hudLevel.setPosition(sf::Vector2f(static_cast<float>(SCREEN_WIDTH) -
                                           hudLevel.getLocalBounds().size.x - 10.0f,
                                       10.0f));
 
-    sf::Text hudHelp(font, "Drag and release to shoot. ESC to quit.", 16);
+    unsigned int helpFontSize = static_cast<unsigned int>(16.0f * su);
+    if(helpFontSize < 12u)
+    {
+        helpFontSize = 12u;
+    }
+
+    sf::Text hudHelp(font, "Drag and release to shoot. ESC to quit.", helpFontSize);
     hudHelp.setFillColor(sf::Color(180, 180, 180));
     hudHelp.setPosition(sf::Vector2f(10.0f, static_cast<float>(SCREEN_HEIGHT) - 30.0f));
 
@@ -370,10 +421,10 @@ void play(sf::RenderWindow& window,
                 {
                     sf::Vector2f dragVec = dragStart - dragCurrent;
                     float length = std::sqrt(dragVec.x * dragVec.x + dragVec.y * dragVec.y);
-                    float pull = std::min(length, MAX_PULL_RADIUS);
+                    float pull = std::min(length, MAX_PULL_RADIUS * su);
                     if(pull >= MIN_PULL_DISTANCE)
                     {
-                        float t = (MAX_PULL_RADIUS > 0.0f) ? (pull / MAX_PULL_RADIUS) : 0.0f;
+                        float t = (MAX_PULL_RADIUS > 0.0f) ? (pull / (MAX_PULL_RADIUS * su)) : 0.0f;
                         float speed = t * MAX_LAUNCH_SPEED;
                         sf::Vector2f dir = {dragVec.x / (length > 0.0f ? length : 1.0f),
                                             dragVec.y / (length > 0.0f ? length : 1.0f)};
@@ -404,9 +455,9 @@ void play(sf::RenderWindow& window,
             sf::Vector2f pos = projectile.sprite.getPosition();
             pos += projectile.velocity * dt;
 
-            if(pos.y + PROJECTILE_RADIUS >= groundY)
+            if(pos.y + projectileRadius >= groundY)
             {
-                pos.y = groundY - PROJECTILE_RADIUS;
+                pos.y = groundY - projectileRadius;
                 projectile.inFlight = false;
                 projectile.velocity = {0.0f, 0.0f};
                 projectile.sprite.setPosition(ballStart);
@@ -511,7 +562,7 @@ void play(sf::RenderWindow& window,
         {
             sf::Vector2f dragVec = dragStart - dragCurrent;
             float length = std::sqrt(dragVec.x * dragVec.x + dragVec.y * dragVec.y);
-            float pull = std::min(length, MAX_PULL_RADIUS);
+            float pull = std::min(length, MAX_PULL_RADIUS * su);
 
             float t = (MAX_PULL_RADIUS > 0.0f) ? (pull / MAX_PULL_RADIUS) : 0.0f;
             unsigned char alpha = 100;

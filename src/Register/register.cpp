@@ -106,6 +106,8 @@ namespace
 void nameEntry(sf::RenderWindow& window, GameState& state, std::string& playerName)
 {
     playerName.clear();
+    const float su = scaleUniform();
+
     sf::Font font;
     if(!font.openFromFile(FONT_PATH))
     {
@@ -113,24 +115,50 @@ void nameEntry(sf::RenderWindow& window, GameState& state, std::string& playerNa
         state = GameState::Exiting;
         return;
     }
+    font.setSmooth(false);
+
     bool done = false;
     bool showCursor = true;
     auto lastBlink = std::chrono::steady_clock::now();
 
-    sf::Text nameDisplay(font, "", 36);
+    unsigned int titleSize = static_cast<unsigned int>(42.0f * su);
+    if(titleSize < 24u)
+    {
+        titleSize = 24u;
+    }
+
+    unsigned int promptSize = static_cast<unsigned int>(28.0f * su);
+    if(promptSize < 18u)
+    {
+        promptSize = 18u;
+    }
+
+    unsigned int nameSize = static_cast<unsigned int>(36.0f * su);
+    if(nameSize < 20u)
+    {
+        nameSize = 20u;
+    }
+
+    unsigned int infoSize = static_cast<unsigned int>(18.0f * su);
+    if(infoSize < 14u)
+    {
+        infoSize = 14u;
+    }
+
+    sf::Text nameDisplay(font, "", nameSize);
     nameDisplay.setFillColor(sf::Color::White);
     nameDisplay.setPosition({(SCREEN_WIDTH / 2) - nameDisplay.getLocalBounds().position.x / 2, SCREEN_HEIGHT / 2 - nameDisplay.getLocalBounds().size.y / 2});
 
 
-    sf::Text prompt(font, "Enter your name (max 40 chars):", 28);
+    sf::Text prompt(font, "Enter your name (max 40 chars):", promptSize);
     prompt.setFillColor(sf::Color(220,220,255));
-    prompt.setPosition({(SCREEN_WIDTH / 2) - prompt.getLocalBounds().size.x / 2,  60});
+    prompt.setPosition({(SCREEN_WIDTH / 2) - prompt.getLocalBounds().size.x / 2,  80});
 
-    sf::Text info(font, "ENTER: confirm  ESC: quit.", 18);
+    sf::Text info(font, "ENTER: confirm  ESC: quit.", infoSize);
     info.setFillColor(sf::Color(180,180,180));
     info.setPosition({(SCREEN_WIDTH / 2) - info.getLocalBounds().size.x / 2, (SCREEN_HEIGHT - 60)});
 
-    sf::Text title(font, "Open Shot", 42);
+    sf::Text title(font, "Open Shot", titleSize);
     title.setFillColor(sf::Color(230, 230, 250));
     title.setPosition({(SCREEN_WIDTH / 2.0f) - title.getLocalBounds().size.x / 2.0f, 20.0f});
 
@@ -218,6 +246,10 @@ void showLeaderboard(sf::RenderWindow& window,
     upsertLeaderboardEntry(entries, playerName, score);
     saveLeaderboard(entries);
 
+    const float sx = scaleX();
+    const float sy = scaleY();
+    const float su = scaleUniform();
+
     sf::Font font;
     if(!font.openFromFile(FONT_PATH))
     {
@@ -225,25 +257,47 @@ void showLeaderboard(sf::RenderWindow& window,
         state = GameState::Exiting;
         return;
     }
+    font.setSmooth(false);
 
-    sf::Text title(font, "Leaderboard (Top 10)", 28);
+    unsigned int titleSize = static_cast<unsigned int>(34.0f * su);
+    if(titleSize < 24u)
+    {
+        titleSize = 24u;
+    }
+
+    sf::Text title(font, "Leaderboard (Top 20)", titleSize);
     title.setFillColor(sf::Color::White);
     title.setPosition({(SCREEN_WIDTH / 2) - title.getLocalBounds().size.x / 2, 40.0f});
 
     std::vector<sf::Text> rows;
-    rows.reserve(std::min(entries.size(), static_cast<std::size_t>(MAX_LEADERBOARD_DISPLAY)));
+    const std::size_t maxDisplay =
+        std::min(entries.size(), static_cast<std::size_t>(MAX_LEADERBOARD_DISPLAY));
+    rows.reserve(maxDisplay);
 
-    float startY = 100.0f;
-    float lineHeight = 26.0f;
+    // Two columns of 10 rows; compute vertical spacing to use most of the screen
+    float rowsPerColumn = 10.0f;
 
-    for(std::size_t i = 0;
-        i < entries.size() && i < static_cast<std::size_t>(MAX_LEADERBOARD_DISPLAY);
-        ++i)
+    float topY = title.getPosition().y + title.getLocalBounds().size.y + 50.0f;
+    float bottomY = static_cast<float>(SCREEN_HEIGHT) - 100.0f; // leave room above footer
+    float available = bottomY - topY;
+    float lineHeight = (rowsPerColumn > 1.0f) ? (available / (rowsPerColumn - 1.0f)) : 0.0f;
+    float startY = topY;
+
+    float colLeftX = static_cast<float>(SCREEN_WIDTH) * 0.15f;
+    float colRightX = static_cast<float>(SCREEN_WIDTH) * 0.55f;
+
+    unsigned int rowFontSize = static_cast<unsigned int>(26.0f * su);
+    if(rowFontSize < 18u)
+    {
+        rowFontSize = 18u;
+    }
+
+    for(std::size_t i = 0; i < maxDisplay; ++i)
     {
         const auto& e = entries[i];
         std::string line = std::to_string(i + 1) + ". " + e.name + " - " + std::to_string(e.score);
 
-        sf::Text text(font, line, 20);
+        sf::Text text(font, line, rowFontSize);
 
         bool isCurrent = (e.name == playerName && e.score == score);
         if(isCurrent)
@@ -255,11 +309,23 @@ void showLeaderboard(sf::RenderWindow& window,
             text.setFillColor(sf::Color(210, 210, 210));
         }
 
-        text.setPosition({40.0f, startY + static_cast<float>(rows.size()) * lineHeight});
+        int col = static_cast<int>(i) / 10; // 2 columns max
+        int row = static_cast<int>(i) % 10;
+
+        float x = (col == 0) ? colLeftX : colRightX;
+        float y = startY + static_cast<float>(row) * lineHeight;
+
+        text.setPosition({x, y});
         rows.push_back(text);
     }
 
-    sf::Text footer(font, "ENTER: play again   ESC: quit", 18);
+    unsigned int footerSize = static_cast<unsigned int>(20.0f * su);
+    if(footerSize < 16u)
+    {
+        footerSize = 16u;
+    }
+
+    sf::Text footer(font, "ENTER: play again   ESC: quit", footerSize);
     footer.setFillColor(sf::Color(180, 180, 180));
     footer.setPosition({(SCREEN_WIDTH / 2) - footer.getLocalBounds().size.x / 2,
                         static_cast<float>(SCREEN_HEIGHT) - 40.0f});
