@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include "Game/gamestate.hpp"
 #include "constants.hpp"
 
 Game::Game() :
@@ -46,6 +47,10 @@ void Game::run()
             case GameState::Leaderboard:
                 showLeaderboard(m_window, m_state, m_playerName, m_score);
                 break;
+            case GameState::GameEnd:
+              // TODO: Add Game End Screen (prompts for game restart or exit). It is an overlay over the game setting.
+              // Flickering/Blinking GameOver and Score displayed on the screen.
+              break;
             default:
                 break;
         }

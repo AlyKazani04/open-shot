@@ -597,10 +597,6 @@ void play(sf::RenderWindow& window,
 
             window.draw(dragCircle);
 
-            sf::Vertex line[] = {
-                {{dragStart.x, dragStart.y}, sf::Color::White},
-                {{dragCurrent.x, dragCurrent.y}, sf::Color(200, 200, 255)}};
-            window.draw(line, 2, sf::PrimitiveType::Lines);
         }
 
         window.draw(hudName);

@@ -8,5 +8,6 @@ enum class GameState {
     Playing,
     LevelComplete,
     Leaderboard,
+    GameEnd,
     Exiting
 };
