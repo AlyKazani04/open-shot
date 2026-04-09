@@ -38,11 +38,13 @@ constexpr float PROJECTILE_RADIUS = 12.0f;  // design units; scale with scaleUni
 constexpr int BASE_SHOTS_LEVEL1 = 5;
 constexpr int SCORE_PER_OBSTACLE = 10;
 
-// Leaderboard configuration
+// Leaderboard / session data configuration
 constexpr char LEADERBOARD_DIR[] = "data";
-constexpr char LEADERBOARD_FILE[] = "data/leaderboard.csv";
 constexpr int MAX_LEADERBOARD_RECORDS = 20;
-constexpr int MAX_LEADERBOARD_DISPLAY = 20;
+
+// Per-session results for external leaderboard
+constexpr char SESSION_RESULTS_FILE[] = "data/session_results.jsonl";
+constexpr char GAME_ID[] = "open-shot";
 
 // Launch/drag configuration
 constexpr float MAX_PULL_RADIUS = 140.0f;

@@ -9,7 +9,5 @@
 
 void nameEntry(sf::RenderWindow& window, GameState& state, std::string& playerName);
 
-void showLeaderboard(sf::RenderWindow& window,
-                     GameState& state,
-                     const std::string& playerName,
-                     int score);
+// Persist a finished game session locally for later upload
+void saveSessionResult(const std::string& playerName, int score);
